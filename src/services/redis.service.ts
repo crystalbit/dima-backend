@@ -26,14 +26,14 @@ export class RedisService {
 
   public static async redisEndGame(userId: number) {
     const pairedUser = await promisify(() => client.hget(USERS_GAME_PAIRS_MAP_KEY, userId.toString()));
-    await client.hdel(USERS_GAME_PAIRS_MAP_KEY, userId.toString());
+    await promisify(() => client.hdel(USERS_GAME_PAIRS_MAP_KEY, userId.toString()));
     if (pairedUser) {
-      await client.hdel(USERS_GAME_PAIRS_MAP_KEY, pairedUser);
+      await promisify(() => client.hdel(USERS_GAME_PAIRS_MAP_KEY, pairedUser));
     }
   };
 
   public static async redisGetPair(userId: number): Promise<string | null> {
-    return new Promise((resolve) => {
+    return new Promise<string>((resolve) => {
       client.hget(
         USERS_GAME_PAIRS_MAP_KEY,
         userId.toString(),
@@ -59,7 +59,7 @@ export class RedisService {
   };
 
   public static async redisGetQueueSize(): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise<number>((resolve) => {
       client.llen(USERS_QUEUE_KEY, (_err, result) => resolve(result));
     });
   }
@@ -68,7 +68,7 @@ export class RedisService {
     let valid = false;
     let userId: string | null = null;
     while (!valid) {
-      userId = await new Promise((resolve) => {
+      userId = await new Promise<string>((resolve) => {
         client.lpop(USERS_QUEUE_KEY, (_err, result) => resolve(result));
       });
       if (userId !== null) {
@@ -81,7 +81,7 @@ export class RedisService {
         } else {
           valid = true;
         }
-        await client.hdel(USERS_MAP_KEY, userId);
+        await promisify(() => client.hdel(USERS_MAP_KEY, userId));
         if (timersToDelete.has(+userId)) {
           clearTimeout(+(timersToDelete.get(+userId) || 0));
           timersToDelete.delete(+userId);
