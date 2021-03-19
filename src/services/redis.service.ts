@@ -1,5 +1,4 @@
-import { createClient } from 'redis';
-import { promisify } from 'util';
+import { createClient } from 'async-redis';
 import Timeout = NodeJS.Timeout;
 
 const client = createClient();
@@ -20,26 +19,23 @@ const timersToDelete = new Map<number, Timeout>();
 
 export class RedisService {
   public static async redisMakeGamePair(user1: number, user2: number) {
-    await promisify(() => client.hset(USERS_GAME_PAIRS_MAP_KEY, user1.toString(), user2.toString()));
-    await promisify(() => client.hset(USERS_GAME_PAIRS_MAP_KEY, user2.toString(), user1.toString()));
+    await client.hset(USERS_GAME_PAIRS_MAP_KEY, user1.toString(), user2.toString());
+    await client.hset(USERS_GAME_PAIRS_MAP_KEY, user2.toString(), user1.toString());
   }
 
   public static async redisEndGame(userId: number) {
-    const pairedUser = await promisify(() => client.hget(USERS_GAME_PAIRS_MAP_KEY, userId.toString()));
-    await promisify(() => client.hdel(USERS_GAME_PAIRS_MAP_KEY, userId.toString()));
+    const pairedUser = await client.hget(USERS_GAME_PAIRS_MAP_KEY, userId.toString());
+    await client.hdel(USERS_GAME_PAIRS_MAP_KEY, userId.toString());
     if (pairedUser) {
-      await promisify(() => client.hdel(USERS_GAME_PAIRS_MAP_KEY, pairedUser));
+      await client.hdel(USERS_GAME_PAIRS_MAP_KEY, pairedUser);
     }
   };
 
   public static async redisGetPair(userId: number): Promise<string | null> {
-    return new Promise<string>((resolve) => {
-      client.hget(
-        USERS_GAME_PAIRS_MAP_KEY,
-        userId.toString(),
-        (err, res) => resolve(err ? null : res)
-      );
-    });
+    return client.hget(
+      USERS_GAME_PAIRS_MAP_KEY,
+      userId.toString()
+    );
   };
 
   public static async redisSetInQueue(userId: number): Promise<boolean> {
@@ -47,26 +43,10 @@ export class RedisService {
       console.log(`Игрок ${userId} уже в очереди, размер очереди: ${await this.redisGetQueueSize()}`);
       return false;
     }
-    await new Promise((rs, rj) => {
-      client.rpush(USERS_QUEUE_KEY, userId.toString(), (err, res) => {
-        if (err) {
-          rj(err);
-        } else {
-          rs(res);
-        }
-      });
-    });
-    await new Promise((rs, rj) => {
-      client.hset(USERS_MAP_KEY, userId.toString(), (+new Date()).toString(), (err, res) => {
-        if (err) {
-          rj(err);
-        } else {
-          rs(res);
-        }
-      });
-    });
+    await client.rpush(USERS_QUEUE_KEY, userId.toString());
+    await client.hset(USERS_MAP_KEY, userId.toString(), (+new Date()).toString());
     timersToDelete.set(+userId, setTimeout(async () => {
-      await new Promise((resolve) => client.hdel(USERS_MAP_KEY, userId.toString(), () => resolve(true)));
+      await client.hdel(USERS_MAP_KEY, userId.toString());
       console.log('deleted', userId);
     }, MS_WAIT_IN_QUEUE));
     console.log(`Игрок ${userId} встал в ожидание, размер очереди: ${await this.redisGetQueueSize()}`);
@@ -74,35 +54,23 @@ export class RedisService {
   };
 
   public static async redisGetQueueSize(): Promise<number> {
-    return new Promise<number>((rs, rj) => {
-      client.llen(USERS_QUEUE_KEY, (err, res) => {
-        if (err) {
-          rj(err);
-        } else {
-          rs(res);
-        }
-      });
-    });
+    return client.llen(USERS_QUEUE_KEY);
   }
 
   public static async redisPopUser(): Promise<string | null> {
     let valid = false;
     let userId: string | null = null;
     while (!valid) {
-      userId = await new Promise<string>((resolve) => {
-        client.lpop(USERS_QUEUE_KEY, (_err, result) => resolve(result));
-      });
+      userId = await client.lpop(USERS_QUEUE_KEY);
       if (userId !== null) {
-        const time = await new Promise<string>((resolve) => {
-          client.hget(USERS_MAP_KEY, userId, (_err, result) => resolve(result));
-        });
+        const time = await client.hget(USERS_MAP_KEY, userId);
         if (!time || +new Date() - +time > MS_WAIT_IN_QUEUE) {
           // почему-то не удалили, мб перезапуск - берём дальше
           valid = false;
         } else {
           valid = true;
         }
-        await new Promise((resolve) => client.hdel(USERS_MAP_KEY, userId, () => resolve(true)));
+        await client.hdel(USERS_MAP_KEY, userId);
         if (timersToDelete.has(+userId)) {
           clearTimeout(+(timersToDelete.get(+userId) || 0));
           timersToDelete.delete(+userId);
@@ -122,9 +90,7 @@ export class RedisService {
     start: number;
     now: number;
   } | null> {
-    const time = await new Promise<string>((resolve) => {
-      client.hget(USERS_MAP_KEY, userId.toString(), (_err, result) => resolve(result));
-    });
+    const time = await client.hget(USERS_MAP_KEY, userId.toString());
     if (time !== null && +new Date() - +time <= MS_WAIT_IN_QUEUE) {
       return {
         start: +time,
