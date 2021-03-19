@@ -81,6 +81,10 @@ export class RedisService {
         if (!time || +new Date() - +time > MS_WAIT_IN_QUEUE) {
           // почему-то не удалили, мб перезапуск - берём дальше
           valid = false;
+          if (timersToDelete.has(+userId)) {
+            clearTimeout(+(timersToDelete.get(+userId) || 0));
+            timersToDelete.delete(+userId);
+          }
         } else {
           valid = true;
         }

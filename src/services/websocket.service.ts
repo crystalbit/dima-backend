@@ -78,7 +78,6 @@ export class WebsocketService {
   };
 
   public async sendWin(userId: number, combination: any) {
-    console.log('WIN')
     const socket = getSocket(+userId);
     if (!socket) {
       return false;
@@ -88,7 +87,6 @@ export class WebsocketService {
   };
 
   public async sendLose(userId: number, combination: any) {
-    console.log('LOSE')
     const socket = getSocket(+userId);
     if (!socket) {
       return false;
@@ -98,7 +96,6 @@ export class WebsocketService {
   };
 
   public async sendNeutral(userId: number, combination: any) {
-    console.log('NEUTRAL')
     const socket = getSocket(+userId);
     if (!socket) {
       return false;
