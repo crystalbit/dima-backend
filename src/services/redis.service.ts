@@ -47,11 +47,26 @@ export class RedisService {
       console.log(`Игрок ${userId} уже в очереди, размер очереди: ${await this.redisGetQueueSize()}`);
       return false;
     }
-    await new Promise((resolve) => client.rpush(USERS_QUEUE_KEY, userId.toString(), () => resolve(true)));
-    await new Promise((resolve) => client.hset(USERS_MAP_KEY, userId.toString(), (+new Date()).toString(), () => resolve(true)));
+    await new Promise((rs, rj) => {
+      client.rpush(USERS_QUEUE_KEY, userId.toString(), (err, res) => {
+        if (err) {
+          rj(err);
+        } else {
+          rs(res);
+        }
+      });
+    });
+    await new Promise((rs, rj) => {
+      client.hset(USERS_MAP_KEY, userId.toString(), (+new Date()).toString(), (err, res) => {
+        if (err) {
+          rj(err);
+        } else {
+          rs(res);
+        }
+      });
+    });
     timersToDelete.set(+userId, setTimeout(async () => {
       await new Promise((resolve) => client.hdel(USERS_MAP_KEY, userId.toString(), () => resolve(true)));
-      // TODO catch, then, socket event
       console.log('deleted', userId);
     }, MS_WAIT_IN_QUEUE));
     console.log(`Игрок ${userId} встал в ожидание, размер очереди: ${await this.redisGetQueueSize()}`);
@@ -59,8 +74,14 @@ export class RedisService {
   };
 
   public static async redisGetQueueSize(): Promise<number> {
-    return new Promise<number>((resolve) => {
-      client.llen(USERS_QUEUE_KEY, (_err, result) => resolve(result));
+    return new Promise<number>((rs, rj) => {
+      client.llen(USERS_QUEUE_KEY, (err, res) => {
+        if (err) {
+          rj(err);
+        } else {
+          rs(res);
+        }
+      });
     });
   }
 
