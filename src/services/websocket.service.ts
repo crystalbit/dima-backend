@@ -7,7 +7,7 @@ import { RedisService } from "./redis.service";
 const redis = new RedisService();
 
 export class WebsocketService {
-  private io;
+  private io: Server;
 
   public constructor() {
     const app = express();
