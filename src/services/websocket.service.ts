@@ -1,26 +1,30 @@
-import { createServer } from 'http';
+import { createServer, Server } from 'http';
 import express = require('express');
-import { Server } from 'socket.io';
+import { Server as SocketServer } from 'socket.io';
 import { clearSocket, getSocket, setSocket } from "../stores/users.store";
 import { RedisService } from "./redis.service";
 
 const redis = new RedisService();
 
 export class WebsocketService {
-  private io;
+  private io: SocketServer;
+  private httpServer: Server;
 
   public constructor() {
     const app = express();
     const server = createServer(app);
-    this.io = new Server(server, {
+
+    this.io = new SocketServer(server, {
       cors: {
         origin: '*',
         methods: ['GET'],
       },
     });
-    server.listen(process.env.WS_PORT ?? 6000, () => {
+
+    this.httpServer = server.listen(process.env.WS_PORT ?? 6000, () => {
       console.log('WS Started');
     });
+
     this.io.on('connect', (socket) => {
       const { userId } = socket.handshake.query;
 
@@ -103,4 +107,9 @@ export class WebsocketService {
     socket.emit('neutral', combination);
     return true;
   };
+
+  public stopService() {
+    this.httpServer.close();
+    redis.stopService();
+  }
 }

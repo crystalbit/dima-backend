@@ -1,6 +1,6 @@
 {
   "name": "dima-backend",
-  "version": "1.1.1",
+  "version": "1.1.4",
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "npm run build && node src/tests/redis.test.js"
   },
   "keywords": [],
   "author": "",
@@ -23,16 +24,16 @@
   },
   "homepage": "https://github.com/crystalbit/dima-backend#readme",
   "dependencies": {
-    "async-redis": "^1.1.7",
+    "async-redis": "^2.0.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "socket.io": "^4.0.0"
+    "socket.io": "^4.5.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.11",
     "@types/node": "^14.14.35",
-    "@types/socket.io": "^2.1.13",
+    "@types/socket.io": "^3.0.2",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   }

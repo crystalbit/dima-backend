@@ -11,4 +11,9 @@ export class QueueService {
     await this.redis.redisMakeGamePair(user1, user2);
     await this.ws.sendWerePaired(user1, user2);
   };
+
+  public stop() {
+    this.ws.stopService();
+    this.redis.stopService();
+  }
 }

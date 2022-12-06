@@ -1,4 +1,4 @@
-import { createClient, RedisClient } from 'async-redis';
+import AsyncRedis from 'async-redis';
 import Timeout = NodeJS.Timeout;
 
 /**
@@ -11,20 +11,17 @@ const USERS_QUEUE_KEY = 'users_queue';
 const USERS_MAP_KEY = 'users_map'; // map userId to time signed
 const USERS_GAME_PAIRS_MAP_KEY = 'game_pairs_map';
 
-const MS_WAIT_IN_QUEUE = 60 * 1000;
+const MS_WAIT_IN_QUEUE = 6 * 1000;
 
 const timersToDelete = new Map<number, Timeout>();
-//
-// export const test = async () => {
-//   await client.hset('eee', 'eee', '222');
-//   console.log(await client.hget('eee', 'eee'));
-// }
 
 export class RedisService {
-  private client: RedisClient;
+  // @ts-ignore
+  private client: AsyncRedis;
 
   constructor() {
-    this.client = createClient();
+    // @ts-ignore
+    this.client = AsyncRedis.createClient();
   }
 
   public async test() {
@@ -117,4 +114,11 @@ export class RedisService {
     }
     return null;
   };
+
+  public stopService() {
+    for (const [, timer] of timersToDelete) {
+      clearTimeout(timer);
+    }
+    this.client.quit();
+  }
 }
