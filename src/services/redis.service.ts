@@ -1,7 +1,5 @@
-import { AsyncRedis } from 'async-redis';
+import { createClient, RedisClient } from 'async-redis';
 import Timeout = NodeJS.Timeout;
-
-const { createClient } = new AsyncRedis({});
 
 /**
  * Итак, у нас есть очередь ожидания соперника
@@ -23,7 +21,7 @@ const timersToDelete = new Map<number, Timeout>();
 // }
 
 export class RedisService {
-  private client;
+  private client: RedisClient;
 
   constructor() {
     this.client = createClient();
